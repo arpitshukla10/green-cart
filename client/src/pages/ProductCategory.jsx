@@ -9,16 +9,14 @@ const ProductCategory = () => {
     const { products } = useAppContext();
     const { category } = useParams();
 
-    console.log("Products :", products);
-    console.log("Products Length :", products.length);
-    console.log("Current Category :", category);
-
     const searchCategory = categories.find(
         (item) => item.path.toLowerCase() === category
     );
 
-    // TEST: Filter hata diya hai
-    const filteredProducts = products;
+    const activeCategory = searchCategory?.path || category;
+    const filteredProducts = products.filter(
+        (product) => product.category?.toLowerCase() === activeCategory?.toLowerCase()
+    );
 
     return (
         <div className='mt-16'>
@@ -34,7 +32,7 @@ const ProductCategory = () => {
 
             {filteredProducts.length > 0 ? (
                 <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 mt-6'>
-                    {filteredProducts.map((product) => (
+                    {filteredProducts.filter((product) => product.inStock).map((product) => (
                         <ProductCard key={product._id} product={product} />
                     ))}
                 </div>

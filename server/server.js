@@ -23,11 +23,19 @@ await connectCloudinary()
 const envOrigins = [
     process.env.CLIENT_URL,
     process.env.FRONTEND_URL,
-].filter(Boolean);
+    process.env.VITE_CLIENT_URL,
+    process.env.CORS_ORIGINS,
+]
+    .filter(Boolean)
+    .flatMap((value) => value.split(','))
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
 const allowedOrigins = [
     'http://localhost:5173',
+    'http://127.0.0.1:5173',
     'https://green-cart-eight-chi.vercel.app',
+    'https://green-cart-n2dqkuepr-arpitshuklaa63-1252s-projects.vercel.app',
     ...envOrigins,
 ];
 
@@ -44,7 +52,7 @@ const isAllowedOrigin = (origin) => {
     }
 };
 
-app.use(cors({
+const corsOptions = {
     origin: (origin, callback) => {
         if (isAllowedOrigin(origin)) {
             return callback(null, true);
@@ -53,7 +61,10 @@ app.use(cors({
         return callback(new Error('Not allowed by CORS'));
     },
     credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 
 app.use(express.json());

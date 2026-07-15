@@ -2,7 +2,6 @@ import React, { useEffect, createContext, useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "axios";
-import { dummyProducts } from "../assets/assets";
 
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
@@ -27,13 +26,15 @@ export const AppContextProvider = ({ children }) => {
         try {
             const { data } = await axios.get("/api/product/list");
 
-            if (data.success) {
+            if (data.success && Array.isArray(data.products)) {
                 setProducts(data.products);
-            } else {
-                setProducts(dummyProducts);
+                return;
             }
+
+            setProducts([]);
         } catch (error) {
-            setProducts(dummyProducts);
+            console.log("Failed to fetch products:", error);
+            setProducts([]);
         }
     };
 
