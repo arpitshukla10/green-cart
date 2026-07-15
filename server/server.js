@@ -20,10 +20,38 @@ const port = process.env.PORT || 5000;
 await connectDB()
 await connectCloudinary()
 
-const allowedOrigins = ['http://localhost:5173', 'https://green-cart-eight-chi.vercel.app'];
+const envOrigins = [
+    process.env.CLIENT_URL,
+    process.env.FRONTEND_URL,
+].filter(Boolean);
+
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://green-cart-eight-chi.vercel.app',
+    ...envOrigins,
+];
+
+const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+
+    if (allowedOrigins.includes(origin)) return true;
+
+    try {
+        const { hostname, protocol } = new URL(origin);
+        return protocol === 'https:' && hostname.endsWith('.vercel.app');
+    } catch {
+        return false;
+    }
+};
 
 app.use(cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true
 }));
 
