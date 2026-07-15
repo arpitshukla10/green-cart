@@ -18,11 +18,24 @@ export const AppContextProvider = ({ children }) => {
     const [isSeller, setIsSeller] = useState(false);
     const [showUserLogin, setShowUserLogin] = useState(false);
 
-    // Assets.js Products
-    const [products, setProducts] = useState(dummyProducts);
+    const [products, setProducts] = useState([]);
 
     const [cartItems, setCartItems] = useState({});
     const [searchQuery, setSearchQuery] = useState("");
+
+    const fetchProducts = async () => {
+        try {
+            const { data } = await axios.get("/api/product/list");
+
+            if (data.success) {
+                setProducts(data.products);
+            } else {
+                setProducts(dummyProducts);
+            }
+        } catch (error) {
+            setProducts(dummyProducts);
+        }
+    };
 
     // Seller Auth
     const fetchSeller = async () => {
@@ -116,11 +129,7 @@ export const AppContextProvider = ({ children }) => {
     useEffect(() => {
         fetchUser();
         fetchSeller();
-
-        // Force Assets Products
-        setProducts(dummyProducts);
-
-        console.log("Dummy Products:", dummyProducts.length);
+        fetchProducts();
     }, []);
 
     // Sync Cart
@@ -171,6 +180,7 @@ export const AppContextProvider = ({ children }) => {
         setSearchQuery,
         getCartCount,
         getCartAmount,
+        fetchProducts,
         axios,
     };
 
