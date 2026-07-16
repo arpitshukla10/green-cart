@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { dummyProducts } from "../assets/assets";
+import { getProductCatalogKey, mergeCatalogProducts } from "../utils/productDisplay";
 
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
@@ -10,23 +11,6 @@ axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 export const AppContext = createContext();
 
 const isMongoObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ""));
-const getProductKey = (product) =>
-    `${String(product?.category || "").toLowerCase()}::${String(product?.name || "").toLowerCase()}`;
-const mergeProducts = (apiProducts = []) => {
-    const mergedProducts = [...dummyProducts];
-    const existingKeys = new Set(dummyProducts.map(getProductKey));
-
-    apiProducts.forEach((product) => {
-        const productKey = getProductKey(product);
-
-        if (!existingKeys.has(productKey)) {
-            mergedProducts.unshift(product);
-            existingKeys.add(productKey);
-        }
-    });
-
-    return mergedProducts;
-};
 
 export const AppContextProvider = ({ children }) => {
 
@@ -47,7 +31,7 @@ export const AppContextProvider = ({ children }) => {
             const { data } = await axios.get("/api/product/list");
 
             if (data.success && Array.isArray(data.products)) {
-                setProducts(mergeProducts(data.products));
+                setProducts(mergeCatalogProducts(data.products));
                 return;
             }
 
@@ -76,8 +60,7 @@ export const AppContextProvider = ({ children }) => {
             if (data.success) {
                 const sanitizedCartItems = Object.fromEntries(
                     Object.entries(data.user.cartItems || {}).filter(
-                        ([productId, quantity]) =>
-                            isMongoObjectId(productId) && Number(quantity) > 0
+                        ([, quantity]) => Number(quantity) > 0
                     )
                 );
 
@@ -166,6 +149,42 @@ export const AppContextProvider = ({ children }) => {
         }
 
         const validProductIds = new Set(products.map((product) => String(product._id)));
+        const productIdByCatalogKey = new Map(
+            products.map((product) => [getProductCatalogKey(product), String(product._id)])
+        );
+
+        const migratedCartItems = Object.entries(cartItems).reduce((acc, [productId, quantity]) => {
+            if (Number(quantity) <= 0) {
+                return acc;
+            }
+
+            if (validProductIds.has(String(productId))) {
+                acc[productId] = Number(quantity);
+                return acc;
+            }
+
+            const matchedDummyProduct = dummyProducts.find(
+                (product) => String(product._id) === String(productId)
+            );
+
+            if (!matchedDummyProduct) {
+                return acc;
+            }
+
+            const mappedProductId = productIdByCatalogKey.get(getProductCatalogKey(matchedDummyProduct));
+
+            if (mappedProductId) {
+                acc[mappedProductId] = (acc[mappedProductId] || 0) + Number(quantity);
+            }
+
+            return acc;
+        }, {});
+
+        if (JSON.stringify(migratedCartItems) !== JSON.stringify(cartItems)) {
+            setCartItems(migratedCartItems);
+            return;
+        }
+
         const sanitizedCartItems = Object.fromEntries(
             Object.entries(cartItems).filter(([productId, quantity]) =>
                 validProductIds.has(String(productId)) && Number(quantity) > 0

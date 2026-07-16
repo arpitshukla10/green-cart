@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary'
 import Product from '../models/Product.js';
 import mongoose from 'mongoose';
+import demoProducts from '../data/demoProducts.js';
 
 // Add Product: /api/product/add
 export const addProduct = async (req, res) => {
@@ -19,6 +20,44 @@ export const addProduct = async (req, res) => {
         await Product.create({ ...productData, image: imagesUrl })
         res.json({ success: true, message: "Product Added" })
 
+    } catch (error) {
+        console.log(error.message);
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// Seed Demo Products: /api/product/seed-demo
+export const seedDemoProducts = async (req, res) => {
+    try {
+        const existingProducts = await Product.find({}, "name category").lean();
+        const existingKeys = new Set(
+            existingProducts.map(
+                (product) => `${String(product.category || "").toLowerCase()}::${String(product.name || "").toLowerCase()}`
+            )
+        );
+
+        const productsToInsert = demoProducts
+            .filter((product) => !existingKeys.has(`${product.category.toLowerCase()}::${product.name.toLowerCase()}`))
+            .map((product) => ({
+                name: product.name,
+                description: product.description,
+                price: product.price,
+                offerPrice: product.offerPrice,
+                image: [`seed:${product.seedKey}`],
+                category: product.category,
+                inStock: product.inStock,
+            }));
+
+        if (productsToInsert.length === 0) {
+            return res.json({ success: true, message: "Demo products already exist" });
+        }
+
+        await Product.insertMany(productsToInsert);
+
+        return res.json({
+            success: true,
+            message: `${productsToInsert.length} demo products seeded successfully`,
+        });
     } catch (error) {
         console.log(error.message);
         res.json({ success: false, message: error.message })

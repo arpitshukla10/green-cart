@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { decorateProductWithDemoAssets } from '../utils/productDisplay';
 
 const MyOrders = () => {
   const [myOrders, setMyOrders] = useState([]);
@@ -39,8 +40,10 @@ const MyOrders = () => {
             </p>
 
             {/* Items */}
-            {order.items?.map((item, index) =>
-              item.product?.image?.[0] ? (
+            {order.items?.map((item, index) => {
+              const displayProduct = decorateProductWithDemoAssets(item.product);
+
+              return displayProduct?.image?.[0] ? (
                 <div
                   key={index}
                   className={`relative bg-white text-gray-500/70 ${
@@ -51,14 +54,14 @@ const MyOrders = () => {
                   <div className='flex items-center mb-4 md:mb-0'>
                     <div className='bg-primary/10 p-4 rounded-lg'>
                       <img
-                        src={item.product.image[0]}
-                        alt={item.product.name || ''}
+                        src={displayProduct.image[0]}
+                        alt={displayProduct.name || ''}
                         className='w-16 h-16 object-cover rounded-md'
                       />
                     </div>
                     <div className='ml-4'>
-                      <h2 className='text-xl font-medium text-gray-800'>{item.product.name}</h2>
-                      <p className='text-gray-500'>Category: {item.product.category}</p>
+                      <h2 className='text-xl font-medium text-gray-800'>{displayProduct.name}</h2>
+                      <p className='text-gray-500'>Category: {displayProduct.category}</p>
                     </div>
                   </div>
 
@@ -71,11 +74,11 @@ const MyOrders = () => {
 
                   {/* Amount */}
                   <p className='text-primary text-lg font-medium'>
-                    Amount: {currency}{(item.product.offerPrice * (item.quantity || 1)).toFixed(2)}
+                    Amount: {currency}{(displayProduct.offerPrice * (item.quantity || 1)).toFixed(2)}
                   </p>
                 </div>
-              ) : null
-            )}
+              ) : null;
+            })}
           </div>
         ))
       )}

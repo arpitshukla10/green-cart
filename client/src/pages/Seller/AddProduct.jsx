@@ -12,7 +12,7 @@ const AddProduct = () => {
     const [price, setPrice] = useState('');
     const [offerPrice, setOfferPrice] = useState('');
 
-    const {axios} = useAppContext();
+    const {axios, fetchProducts} = useAppContext();
 
     const onSubmitHandler = async (event) => {
         try {
@@ -50,6 +50,21 @@ const AddProduct = () => {
             toast.error(error.message)
         }
     }
+
+    const seedDemoProducts = async () => {
+        try {
+            const { data } = await axios.post('/api/product/seed-demo');
+
+            if (data.success) {
+                toast.success(data.message);
+                fetchProducts();
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
 
     return (
         <div className="no-scrollbar flex-1 h-[95vh] overflow-y-scroll flex flex-col justify-between">
@@ -102,7 +117,12 @@ const AddProduct = () => {
                             id="offer-price" type="number" placeholder="0" className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40" required />
                     </div>
                 </div>
-                <button className="px-8 py-2.5 bg-primary text-white font-medium rounded cursor-pointer">ADD</button>
+                <div className="flex flex-wrap gap-3">
+                    <button className="px-8 py-2.5 bg-primary text-white font-medium rounded cursor-pointer">ADD</button>
+                    <button type="button" onClick={seedDemoProducts} className="px-6 py-2.5 border border-primary text-primary font-medium rounded cursor-pointer hover:bg-primary/10">
+                        Seed Demo Products
+                    </button>
+                </div>
             </form>
         </div>
     );
