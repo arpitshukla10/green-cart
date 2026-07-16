@@ -3,6 +3,8 @@ import { useAppContext } from "../context/AppContext";
 import { assets, dummyAddress } from "../assets/assets";
 import toast from "react-hot-toast";
 
+const isMongoObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ""));
+
 const Cart = () => {
     const {
         products,
@@ -64,10 +66,16 @@ const Cart = () => {
                 return toast.error("Your cart is empty")
             }
 
+            const orderableItems = cartArray.filter((item) => isMongoObjectId(item._id));
+
+            if (orderableItems.length === 0) {
+                return toast.error("Demo asset products can be viewed, but they cannot be ordered.");
+            }
+
             // Place Order with COD
             if (paymentOption === "COD") {
                 const { data } = await axios.post('/api/order/cod', {
-                    items: cartArray.map(item => ({ product: item._id, quantity: item.quantity })),
+                    items: orderableItems.map(item => ({ product: item._id, quantity: item.quantity })),
                     address: selectedAddress._id
                 })
 

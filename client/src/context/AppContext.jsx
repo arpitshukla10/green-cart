@@ -2,6 +2,7 @@ import React, { useEffect, createContext, useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "axios";
+import { dummyProducts } from "../assets/assets";
 
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
@@ -29,14 +30,14 @@ export const AppContextProvider = ({ children }) => {
             const { data } = await axios.get("/api/product/list");
 
             if (data.success && Array.isArray(data.products)) {
-                setProducts(data.products);
+                setProducts(data.products.length > 0 ? data.products : dummyProducts);
                 return;
             }
 
-            setProducts([]);
+            setProducts(dummyProducts);
         } catch (error) {
             console.log("Failed to fetch products:", error);
-            setProducts([]);
+            setProducts(dummyProducts);
         }
     };
 
@@ -75,11 +76,6 @@ export const AppContextProvider = ({ children }) => {
 
     // Add To Cart
     const addToCart = (itemId) => {
-        if (!isMongoObjectId(itemId)) {
-            toast.error("This product is no longer available.");
-            return;
-        }
-
         let cartData = structuredClone(cartItems);
 
         cartData[itemId] = (cartData[itemId] || 0) + 1;
@@ -90,10 +86,6 @@ export const AppContextProvider = ({ children }) => {
 
     // Update Cart
     const updateCartItem = (itemId, quantity) => {
-        if (!isMongoObjectId(itemId)) {
-            return;
-        }
-
         let cartData = structuredClone(cartItems);
 
         cartData[itemId] = quantity;
@@ -107,10 +99,6 @@ export const AppContextProvider = ({ children }) => {
 
     // Remove Cart
     const removeFromCart = (itemId) => {
-        if (!isMongoObjectId(itemId)) {
-            return;
-        }
-
         let cartData = structuredClone(cartItems);
 
         if (cartData[itemId]) {
@@ -182,7 +170,11 @@ export const AppContextProvider = ({ children }) => {
             try {
 
                 await axios.post("/api/cart/update", {
-                    cartItems,
+                    cartItems: Object.fromEntries(
+                        Object.entries(cartItems).filter(([productId, quantity]) =>
+                            isMongoObjectId(productId) && Number(quantity) > 0
+                        )
+                    ),
                 });
 
             } catch (error) {
