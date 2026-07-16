@@ -10,6 +10,23 @@ axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 export const AppContext = createContext();
 
 const isMongoObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ""));
+const getProductKey = (product) =>
+    `${String(product?.category || "").toLowerCase()}::${String(product?.name || "").toLowerCase()}`;
+const mergeProducts = (apiProducts = []) => {
+    const mergedProducts = [...dummyProducts];
+    const existingKeys = new Set(dummyProducts.map(getProductKey));
+
+    apiProducts.forEach((product) => {
+        const productKey = getProductKey(product);
+
+        if (!existingKeys.has(productKey)) {
+            mergedProducts.unshift(product);
+            existingKeys.add(productKey);
+        }
+    });
+
+    return mergedProducts;
+};
 
 export const AppContextProvider = ({ children }) => {
 
@@ -30,7 +47,7 @@ export const AppContextProvider = ({ children }) => {
             const { data } = await axios.get("/api/product/list");
 
             if (data.success && Array.isArray(data.products)) {
-                setProducts(data.products.length > 0 ? data.products : dummyProducts);
+                setProducts(mergeProducts(data.products));
                 return;
             }
 
