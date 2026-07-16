@@ -8,6 +8,8 @@ axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
 
 export const AppContext = createContext();
 
+const isMongoObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ""));
+
 export const AppContextProvider = ({ children }) => {
 
     const currency = import.meta.env.VITE_CURRENCY;
@@ -54,8 +56,15 @@ export const AppContextProvider = ({ children }) => {
             const { data } = await axios.get("/api/user/is-auth");
 
             if (data.success) {
+                const sanitizedCartItems = Object.fromEntries(
+                    Object.entries(data.user.cartItems || {}).filter(
+                        ([productId, quantity]) =>
+                            isMongoObjectId(productId) && Number(quantity) > 0
+                    )
+                );
+
                 setUser(data.user);
-                setCartItems(data.user.cartItems || {});
+                setCartItems(sanitizedCartItems);
             } else {
                 setUser(null);
             }
@@ -66,6 +75,11 @@ export const AppContextProvider = ({ children }) => {
 
     // Add To Cart
     const addToCart = (itemId) => {
+        if (!isMongoObjectId(itemId)) {
+            toast.error("This product is no longer available.");
+            return;
+        }
+
         let cartData = structuredClone(cartItems);
 
         cartData[itemId] = (cartData[itemId] || 0) + 1;
@@ -76,6 +90,10 @@ export const AppContextProvider = ({ children }) => {
 
     // Update Cart
     const updateCartItem = (itemId, quantity) => {
+        if (!isMongoObjectId(itemId)) {
+            return;
+        }
+
         let cartData = structuredClone(cartItems);
 
         cartData[itemId] = quantity;
@@ -89,6 +107,10 @@ export const AppContextProvider = ({ children }) => {
 
     // Remove Cart
     const removeFromCart = (itemId) => {
+        if (!isMongoObjectId(itemId)) {
+            return;
+        }
+
         let cartData = structuredClone(cartItems);
 
         if (cartData[itemId]) {
@@ -132,6 +154,23 @@ export const AppContextProvider = ({ children }) => {
         fetchSeller();
         fetchProducts();
     }, []);
+
+    useEffect(() => {
+        if (products.length === 0 || !cartItems) {
+            return;
+        }
+
+        const validProductIds = new Set(products.map((product) => String(product._id)));
+        const sanitizedCartItems = Object.fromEntries(
+            Object.entries(cartItems).filter(([productId, quantity]) =>
+                validProductIds.has(String(productId)) && Number(quantity) > 0
+            )
+        );
+
+        if (Object.keys(sanitizedCartItems).length !== Object.keys(cartItems).length) {
+            setCartItems(sanitizedCartItems);
+        }
+    }, [products, cartItems]);
 
     // Sync Cart
     useEffect(() => {

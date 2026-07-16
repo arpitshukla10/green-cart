@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary'
 import Product from '../models/Product.js';
+import mongoose from 'mongoose';
 
 // Add Product: /api/product/add
 export const addProduct = async (req, res) => {
@@ -38,7 +39,12 @@ export const productList = async (req, res) => {
 // Get Single Product: /api/product/id
 export const productById = async (req, res) => {
     try {
-        const { id } = req.body
+        const id = req.query.id || req.body.id;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.json({ success: false, message: "Invalid product id" });
+        }
+
         const products = await Product.findById(id)
         res.json({ success: true, products })
     } catch (error) {
@@ -51,6 +57,11 @@ export const productById = async (req, res) => {
 export const changeStock = async (req, res) => {
     try {
         const { id, inStock } = req.body
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.json({ success: false, message: "Invalid product id" });
+        }
+
         await Product.findByIdAndUpdate(id, { inStock })
         res.json({ success: true, message: "Stock Updated" })
     } catch (error) {

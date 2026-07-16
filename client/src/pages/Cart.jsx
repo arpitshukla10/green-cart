@@ -29,8 +29,10 @@ const Cart = () => {
         for (const key in cartItems) {
             const product = products.find((item) => item._id === key);
             if (product) {
-                product.quantity = cartItems[key];
-                tempArray.push(product);
+                tempArray.push({
+                    ...product,
+                    quantity: cartItems[key],
+                });
             }
         }
         setCartArray(tempArray);
@@ -58,10 +60,13 @@ const Cart = () => {
                 return toast.error("Please select an address")
             }
 
+            if (cartArray.length === 0) {
+                return toast.error("Your cart is empty")
+            }
+
             // Place Order with COD
             if (paymentOption === "COD") {
                 const { data } = await axios.post('/api/order/cod', {
-                    userId: user._id,
                     items: cartArray.map(item => ({ product: item._id, quantity: item.quantity })),
                     address: selectedAddress._id
                 })
