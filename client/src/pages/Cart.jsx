@@ -67,9 +67,18 @@ const Cart = () => {
             }
 
             const orderableItems = cartArray.filter((item) => isMongoObjectId(item._id));
+            const nonOrderableItems = cartArray.filter((item) => !isMongoObjectId(item._id));
 
             if (orderableItems.length === 0) {
                 return toast.error("Demo asset products can be viewed, but they cannot be ordered.");
+            }
+
+            if (nonOrderableItems.length > 0) {
+                const nextCartItems = Object.fromEntries(
+                    orderableItems.map((item) => [item._id, item.quantity])
+                );
+                setCartItems(nextCartItems);
+                toast("Demo products were removed from this order.");
             }
 
             // Place Order with COD

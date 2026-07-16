@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { dummyProducts } from "../assets/assets";
-import { getProductCatalogKey, mergeCatalogProducts } from "../utils/productDisplay";
+import { getDummyProductById, getProductCatalogKey, mergeCatalogProducts } from "../utils/productDisplay";
 
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = import.meta.env.VITE_BACKEND_URL;
@@ -76,6 +76,11 @@ export const AppContextProvider = ({ children }) => {
 
     // Add To Cart
     const addToCart = (itemId) => {
+        if (!isMongoObjectId(itemId)) {
+            toast.error("This demo product is not orderable yet.");
+            return;
+        }
+
         let cartData = structuredClone(cartItems);
 
         cartData[itemId] = (cartData[itemId] || 0) + 1;
@@ -163,9 +168,7 @@ export const AppContextProvider = ({ children }) => {
                 return acc;
             }
 
-            const matchedDummyProduct = dummyProducts.find(
-                (product) => String(product._id) === String(productId)
-            );
+            const matchedDummyProduct = getDummyProductById(productId);
 
             if (!matchedDummyProduct) {
                 return acc;

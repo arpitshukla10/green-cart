@@ -6,6 +6,9 @@ export const getProductCatalogKey = (product) =>
 const dummyProductsByKey = new Map(
     dummyProducts.map((product) => [getProductCatalogKey(product), product])
 );
+const dummyProductsById = new Map(
+    dummyProducts.map((product) => [String(product._id), product])
+);
 
 const hasUsableImage = (image) =>
     Array.isArray(image) &&
@@ -36,9 +39,25 @@ export const decorateProductWithDemoAssets = (product) => {
 };
 
 export const mergeCatalogProducts = (apiProducts = []) => {
+    const dedupedApiProducts = new Map();
+
+    apiProducts.forEach((product) => {
+        const productKey = getProductCatalogKey(product);
+        const existingProduct = dedupedApiProducts.get(productKey);
+
+        if (!existingProduct) {
+            dedupedApiProducts.set(productKey, product);
+            return;
+        }
+
+        if (!hasUsableImage(existingProduct.image) && hasUsableImage(product.image)) {
+            dedupedApiProducts.set(productKey, product);
+        }
+    });
+
     const matchedProductKeys = new Set();
 
-    const mergedProducts = apiProducts.map((product) => {
+    const mergedProducts = Array.from(dedupedApiProducts.values()).map((product) => {
         const decoratedProduct = decorateProductWithDemoAssets(product);
         matchedProductKeys.add(getProductCatalogKey(decoratedProduct));
         return decoratedProduct;
@@ -52,3 +71,5 @@ export const mergeCatalogProducts = (apiProducts = []) => {
 
     return mergedProducts;
 };
+
+export const getDummyProductById = (productId) => dummyProductsById.get(String(productId)) || null;
